@@ -271,6 +271,8 @@ pub const ZSocketOption = union(enum) {
     ///
     /// For more details, see https://libzmq.readthedocs.io/en/latest/zmq_setsockopt.html
     RouterHandover: bool,
+
+    Subscribe: []u8,
 };
 
 /// System level socket, which allows for opening outgoing and
@@ -544,6 +546,9 @@ pub const ZSocket = struct {
 
                 result = c.zmq_setsockopt(self.socket_, c.ZMQ_ROUTER_HANDOVER, &v, @sizeOf(@TypeOf(v)));
             },
+            .Subscribe => {
+                result = c.zmq_setsockopt(self.socket_, c.ZMQ_SUBSCRIBE, opt.Subscribe.ptr, opt.Subscribe.len);
+            },
 
             //else => return error.UnknownOption,
         }
@@ -607,6 +612,9 @@ pub const ZSocket = struct {
             },
             .RouterHandover => {
                 return error.UnknownOption; // ZMQ_ROUTER_HANDOVER cannot be retrieved
+            },
+            .Subscribe => {
+                result = c.zmq_getsockopt(self.socket_, c.ZMQ_SUBSCRIBE, opt.Subscribe.ptr, &opt.Subscribe.len);
             },
 
             //else => return error.UnknownOption,
