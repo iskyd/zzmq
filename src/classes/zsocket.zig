@@ -271,6 +271,25 @@ pub const ZSocketOption = union(enum) {
     ///
     /// For more details, see https://libzmq.readthedocs.io/en/latest/zmq_setsockopt.html
     RouterHandover: bool,
+
+    /// The 'ZMQ_SUBSCRIBE' option shall establish a new message filter on a 'ZMQ_SUB' socket.
+    /// Newly created 'ZMQ_SUB' sockets shall filter out all incoming messages,
+    /// therefore you should call this option to establish an initial message filter.
+    ///
+    /// An empty 'option_value' of length zero shall subscribe to all incoming messages.
+    /// A non-empty 'option_value' shall subscribe to all messages beginning with the specified prefix.
+    /// Multiple filters may be attached to a single 'ZMQ_SUB' socket, in which case a message shall be accepted if it matches at least one filter.
+    ///
+    /// For more details, see https://libzmq.readthedocs.io/en/latest/zmq_setsockopt.html
+    Subscribe: []u8,
+
+    /// The 'ZMQ_UNSUBSCRIBE' option shall remove an existing message filter on a 'ZMQ_SUB' socket.
+    /// The filter specified must match an existing filter previously established with the 'ZMQ_SUBSCRIBE' option.
+    /// If the socket has several instances of the same filter attached the 'ZMQ_UNSUBSCRIBE' option shall remove only one instance,
+    /// leaving the rest in place and functional.
+    ///
+    /// For more details, see https://libzmq.readthedocs.io/en/latest/zmq_setsockopt.html
+    Unsubscribe: []u8,
 };
 
 /// System level socket, which allows for opening outgoing and
@@ -544,6 +563,12 @@ pub const ZSocket = struct {
 
                 result = c.zmq_setsockopt(self.socket_, c.ZMQ_ROUTER_HANDOVER, &v, @sizeOf(@TypeOf(v)));
             },
+            .Subscribe => {
+                result = c.zmq_setsockopt(self.socket_, c.ZMQ_SUBSCRIBE, opt.Subscribe.ptr, opt.Subscribe.len);
+            },
+            .Unsubscribe => {
+                result = c.zmq_setsockopt(self.socket_, c.ZMQ_UNSUBSCRIBE, opt.Unsubscribe.ptr, opt.Unsubscribe.len);
+            },
 
             //else => return error.UnknownOption,
         }
@@ -607,6 +632,12 @@ pub const ZSocket = struct {
             },
             .RouterHandover => {
                 return error.UnknownOption; // ZMQ_ROUTER_HANDOVER cannot be retrieved
+            },
+            .Subscribe => {
+                return error.UnknownOption; // ZMQ_SUBSCRIBE cannot be retrieved
+            },
+            .Unsubscribe => {
+                return error.UnknownOption; // ZMQ_UNSUBSCRIBE cannot be retrieved
             },
 
             //else => return error.UnknownOption,
@@ -902,6 +933,42 @@ test "ZSocket - routing id" {
 
     {
         var v = ZSocketOption{ .RouterHandover = undefined };
+        try std.testing.expectError(error.UnknownOption, socket.getSocketOption(&v));
+    }
+}
+
+test "ZSocket - subscribe" {
+    const allocator = std.testing.allocator;
+
+    // create the context
+    var context = try zcontext.ZContext.init(allocator);
+    defer context.deinit();
+
+    // create the socket
+    var socket = try ZSocket.init(ZSocketType.Sub, &context);
+    try socket.setSocketOption(.{ .Subscribe = @constCast("topic") });
+    defer socket.deinit();
+
+    {
+        var v = ZSocketOption{ .Subscribe = undefined };
+        try std.testing.expectError(error.UnknownOption, socket.getSocketOption(&v));
+    }
+}
+
+test "ZSocket - unsubscribe" {
+    const allocator = std.testing.allocator;
+
+    // create the context
+    var context = try zcontext.ZContext.init(allocator);
+    defer context.deinit();
+
+    // create the socket
+    var socket = try ZSocket.init(ZSocketType.Sub, &context);
+    try socket.setSocketOption(.{ .Unsubscribe = @constCast("topic") });
+    defer socket.deinit();
+
+    {
+        var v = ZSocketOption{ .Unsubscribe = undefined };
         try std.testing.expectError(error.UnknownOption, socket.getSocketOption(&v));
     }
 }
