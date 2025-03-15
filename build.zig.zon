@@ -1,6 +1,7 @@
 .{
-    .name = "zzmq",
-    .version = "0.2.2",
+    .name = .zzmq,
+    .version = "0.2.3",
+    .fingerprint = 0x8bf126225950bb77,
     .dependencies = .{},
     .paths = .{
         "build.zig",
