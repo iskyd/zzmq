@@ -1,6 +1,6 @@
 .{
     .name = .zzmq,
-    .version = "0.2.3",
+    .version = "0.3.0",
     .fingerprint = 0x8bf126225950bb77,
     .dependencies = .{},
     .paths = .{
